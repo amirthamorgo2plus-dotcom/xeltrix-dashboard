@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "xeltrix-command",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000,
+      "env": {
+        "DASHBOARD_PASSWORD": "admin123",
+        "SESSION_SECRET": "xeltrix-command-secret-key-32chars!!",
+        "VERCEL_TOKEN": "",
+        "VERCEL_TEAM_ID": ""
+      }
+    }
+  ]
+}
