@@ -3,6 +3,7 @@ import { checkApiAuth } from '@/lib/auth'
 import { APP_REGISTRY, getSupabaseClient } from '@/lib/registry'
 import { createClient } from '@supabase/supabase-js'
 import { getLastDeployment, pingUrl } from '@/lib/vercel'
+import { getProjectUsage } from '@/lib/supabase-mgmt'
 
 export const runtime = 'nodejs'
 
@@ -18,7 +19,7 @@ async function getAppStats(app: (typeof APP_REGISTRY)[0]) {
     }
   }
 
-  // Auth users count (auth schema — needs service role)
+  // Auth users count
   let authUserCount: number | null = null
   if (app.supabaseUrl && app.supabaseServiceKey) {
     try {
@@ -31,41 +32,28 @@ async function getAppStats(app: (typeof APP_REGISTRY)[0]) {
     } catch { /* not available */ }
   }
 
-  // Storage used across all buckets
-  let storageBytes: number | null = null
-  if (client) {
-    try {
-      const { data: buckets } = await client.storage.listBuckets()
-      if (buckets && buckets.length > 0) {
-        storageBytes = 0
-        for (const bucket of buckets) {
-          const { data: files } = await client.storage.from(bucket.name).list('', {
-            limit: 1000,
-            sortBy: { column: 'created_at', order: 'desc' },
-          })
-          for (const file of files ?? []) {
-            if (file.metadata?.size) storageBytes += Number(file.metadata.size)
-          }
-        }
-      }
-    } catch { /* storage not configured */ }
-  }
-
-  // Last activity — most recent created_at across main tables
+  // Last activity
   let lastActivity: string | null = null
   if (client) {
     for (const table of ['users', 'bookings', 'staff', 'organizations', 'cleaning_events', 'attendance']) {
       try {
         const { data } = await client.from(table).select('created_at').order('created_at', { ascending: false }).limit(1)
         if (data?.[0]?.created_at) { lastActivity = data[0].created_at; break }
-      } catch { /* table doesn't exist, skip */ }
+      } catch { /* table doesn't exist */ }
     }
   }
 
+  // DB size, storage, MAU from Management API
+  const usage = app.supabaseUrl
+    ? await getProjectUsage(app.supabaseUrl)
+    : { dbSizeBytes: null, storageSizeBytes: null, mau: null }
+
+  // Ping
   const pingResult = app.supabaseUrl
     ? await pingUrl(`${app.supabaseUrl}/rest/v1/`)
     : { ok: false, ms: 0 }
 
+  // Last Vercel deploy
   const deploy = app.vercelProjectId ? await getLastDeployment(app.vercelProjectId) : null
 
   return {
@@ -75,7 +63,9 @@ async function getAppStats(app: (typeof APP_REGISTRY)[0]) {
     phase: app.phase,
     userCount,
     authUserCount,
-    storageBytes,
+    dbSizeBytes: usage.dbSizeBytes,
+    storageSizeBytes: usage.storageSizeBytes,
+    mau: usage.mau,
     lastActivity,
     ping: pingResult,
     deploy,
@@ -97,9 +87,8 @@ export async function GET() {
           label: APP_REGISTRY[i].label,
           description: APP_REGISTRY[i].description,
           phase: APP_REGISTRY[i].phase,
-          userCount: null,
-          authUserCount: null,
-          storageBytes: null,
+          userCount: null, authUserCount: null,
+          dbSizeBytes: null, storageSizeBytes: null, mau: null,
           lastActivity: null,
           ping: { ok: false, ms: 0 },
           deploy: null,
@@ -110,7 +99,8 @@ export async function GET() {
   return NextResponse.json({
     apps,
     totalUsers: apps.reduce((s, a) => s + (a.userCount ?? 0), 0),
-    totalStorage: apps.reduce((s, a) => s + (a.storageBytes ?? 0), 0),
+    totalDbBytes: apps.reduce((s, a) => s + (a.dbSizeBytes ?? 0), 0),
+    totalStorageBytes: apps.reduce((s, a) => s + (a.storageSizeBytes ?? 0), 0),
     appsUp: apps.filter((a) => a.ping.ok).length,
     totalApps: apps.length,
     fetchedAt: new Date().toISOString(),
