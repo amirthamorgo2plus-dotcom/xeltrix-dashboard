@@ -12,14 +12,14 @@ export async function GET() {
 
   const [orgsRes, staffRes, eventsRes, maintenanceRes] = await Promise.allSettled([
     client.from('orgs').select('id, name, slug, address, storage_bytes, last_login_at, created_at').order('created_at', { ascending: false }),
-    client.from('staff').select('*', { count: 'exact', head: true }),
+    client.from('staff').select('id, name, role, phone, language, active, org_id, created_at').order('created_at', { ascending: false }).limit(50),
     client.from('cleaning_events').select('id, status, created_at').order('created_at', { ascending: false }).limit(20),
     client.from('maintenance').select('id, status, created_at').order('created_at', { ascending: false }).limit(10),
   ])
 
   return NextResponse.json({
     orgs: orgsRes.status === 'fulfilled' ? (orgsRes.value.data ?? []) : [],
-    staffCount: staffRes.status === 'fulfilled' ? (staffRes.value.count ?? 0) : 0,
+    staff: staffRes.status === 'fulfilled' ? (staffRes.value.data ?? []) : [],
     recentEvents: eventsRes.status === 'fulfilled' ? (eventsRes.value.data ?? []) : [],
     recentMaintenance: maintenanceRes.status === 'fulfilled' ? (maintenanceRes.value.data ?? []) : [],
   })
