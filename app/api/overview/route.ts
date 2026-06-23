@@ -35,7 +35,7 @@ async function getAppStats(app: (typeof APP_REGISTRY)[0]) {
   // Last activity
   let lastActivity: string | null = null
   if (client) {
-    for (const table of ['users', 'bookings', 'staff', 'organizations', 'cleaning_events', 'attendance']) {
+    for (const table of ['users', 'bookings', 'staff', 'orgs', 'organizations', 'cleaning_events', 'attendance']) {
       try {
         const { data } = await client.from(table).select('created_at').order('created_at', { ascending: false }).limit(1)
         if (data?.[0]?.created_at) { lastActivity = data[0].created_at; break }

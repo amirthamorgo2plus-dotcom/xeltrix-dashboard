@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   const client = getSupabaseClient('sparkle')
   if (!client) return NextResponse.json({ error: 'Sparkle not configured' }, { status: 503 })
 
-  const { error } = await client.from('organizations').update({ is_active: active }).eq('id', orgId)
+  const { error } = await client.from('orgs').update({ is_active: active }).eq('id', orgId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   await writeAuditLog({ app: 'sparkle', action: active ? 'org_activated' : 'org_deactivated', targetId: orgId, targetType: 'organization', payload: { active } })

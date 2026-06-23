@@ -7,7 +7,7 @@ import { ConfirmAction } from '@/components/ConfirmAction'
 
 interface Org { id: string; name: string; is_active: boolean; created_at: string }
 interface Event { id: string; status: string; created_at: string }
-interface Data { orgs: Org[]; staffCount: number; recentEvents: Event[] }
+interface Data { orgs: Org[]; staffCount: number; recentEvents: Event[]; recentMaintenance: Event[] }
 
 export default function SparklePage() {
   const [data, setData] = useState<Data | null>(null)
