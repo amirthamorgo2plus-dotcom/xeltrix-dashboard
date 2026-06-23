@@ -13,8 +13,8 @@ export async function GET() {
   const [orgsRes, staffRes, eventsRes, maintenanceRes] = await Promise.allSettled([
     client.from('orgs').select('id, name, slug, address, storage_bytes, last_login_at, created_at').order('created_at', { ascending: false }),
     client.from('staff').select('id, name, role, phone, language, active, org_id, created_at').order('created_at', { ascending: false }).limit(50),
-    client.from('cleaning_events').select('id, status, created_at').order('created_at', { ascending: false }).limit(20),
-    client.from('maintenance').select('id, status, created_at').order('created_at', { ascending: false }).limit(10),
+    client.from('cleaning_events').select('id, event, room_no, cleaner_name, duration_secs, org_id, created_at').order('created_at', { ascending: false }).limit(20),
+    client.from('maintenance').select('id, issue, category, status, urgent, room_no, reported_name, fixed_at, created_at').order('created_at', { ascending: false }).limit(20),
   ])
 
   return NextResponse.json({

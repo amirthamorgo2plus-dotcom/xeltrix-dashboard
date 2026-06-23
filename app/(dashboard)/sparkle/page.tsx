@@ -13,8 +13,16 @@ interface Staff {
   phone: string | null; language: string | null
   active: boolean; org_id: string; created_at: string
 }
-interface Event { id: string; status: string; created_at: string }
-interface Data { orgs: Org[]; staff: Staff[]; recentEvents: Event[]; recentMaintenance: Event[] }
+interface CleaningEvent {
+  id: string; event: string; room_no: string | null
+  cleaner_name: string | null; duration_secs: number | null; created_at: string
+}
+interface Maintenance {
+  id: string; issue: string; category: string | null; status: string
+  urgent: boolean; room_no: string | null; reported_name: string | null
+  fixed_at: string | null; created_at: string
+}
+interface Data { orgs: Org[]; staff: Staff[]; recentEvents: CleaningEvent[]; recentMaintenance: Maintenance[] }
 
 function fmtBytes(b: number | null) {
   if (!b) return '—'
@@ -169,16 +177,22 @@ export default function SparklePage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-xs text-gray-400 border-b border-gray-100">
-                        <th className="text-left pb-2 font-semibold">ID</th>
-                        <th className="text-left pb-2 font-semibold">Status</th>
+                        <th className="text-left pb-2 font-semibold">Event</th>
+                        <th className="text-left pb-2 font-semibold">Room</th>
+                        <th className="text-left pb-2 font-semibold">Cleaner</th>
+                        <th className="text-left pb-2 font-semibold">Duration</th>
                         <th className="text-left pb-2 font-semibold">Date</th>
                       </tr>
                     </thead>
                     <tbody>
                       {data.recentEvents.map((e) => (
                         <tr key={e.id} className="border-b border-gray-50 last:border-0">
-                          <td className="py-1.5 text-gray-400 text-xs font-mono">{e.id.slice(0, 8)}…</td>
-                          <td className="py-1.5 text-xs font-semibold text-gray-700">{e.status}</td>
+                          <td className="py-1.5 text-xs font-semibold text-gray-700 capitalize">{e.event}</td>
+                          <td className="py-1.5 text-xs text-gray-500">{e.room_no ?? '—'}</td>
+                          <td className="py-1.5 text-xs text-gray-500">{e.cleaner_name ?? '—'}</td>
+                          <td className="py-1.5 text-xs text-gray-500">
+                            {e.duration_secs != null ? `${Math.round(e.duration_secs / 60)}m` : '—'}
+                          </td>
                           <td className="py-1.5 text-gray-400 text-xs">{fmtDate(e.created_at)}</td>
                         </tr>
                       ))}
@@ -194,17 +208,29 @@ export default function SparklePage() {
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="text-xs text-gray-400 border-b border-gray-100">
-                        <th className="text-left pb-2 font-semibold">ID</th>
+                        <th className="text-left pb-2 font-semibold">Issue</th>
+                        <th className="text-left pb-2 font-semibold">Room</th>
+                        <th className="text-left pb-2 font-semibold">Reported by</th>
                         <th className="text-left pb-2 font-semibold">Status</th>
-                        <th className="text-left pb-2 font-semibold">Date</th>
+                        <th className="text-left pb-2 font-semibold">Fixed</th>
                       </tr>
                     </thead>
                     <tbody>
                       {data.recentMaintenance.map((e) => (
                         <tr key={e.id} className="border-b border-gray-50 last:border-0">
-                          <td className="py-1.5 text-gray-400 text-xs font-mono">{e.id.slice(0, 8)}…</td>
-                          <td className="py-1.5 text-xs font-semibold text-gray-700">{e.status}</td>
-                          <td className="py-1.5 text-gray-400 text-xs">{fmtDate(e.created_at)}</td>
+                          <td className="py-1.5 text-xs text-gray-800">
+                            {e.urgent && <span className="mr-1 text-red-500 font-bold">!</span>}
+                            {e.issue}
+                            {e.category && <span className="ml-1 text-gray-400">({e.category})</span>}
+                          </td>
+                          <td className="py-1.5 text-xs text-gray-500">{e.room_no ?? '—'}</td>
+                          <td className="py-1.5 text-xs text-gray-500">{e.reported_name ?? '—'}</td>
+                          <td className="py-1.5">
+                            <span className={`text-xs font-semibold ${e.status === 'fixed' ? 'text-green-600' : e.status === 'open' ? 'text-amber-500' : 'text-gray-500'}`}>
+                              {e.status}
+                            </span>
+                          </td>
+                          <td className="py-1.5 text-gray-400 text-xs">{fmtDate(e.fixed_at)}</td>
                         </tr>
                       ))}
                     </tbody>
